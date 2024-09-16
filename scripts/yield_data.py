@@ -1,7 +1,99 @@
+from fastapi import FastAPI, HTTPException
 from ape import project, networks, Contract
 from decimal import Decimal
 from datetime import datetime, timedelta
+from pydantic import BaseModel, ConfigDict
 import sqlite3
+
+
+app = FastAPI(title="Vault Yields API")
+
+database = "vault_yields.db"
+
+
+class YieldBase(BaseModel):
+    vault_address: str
+    asset_address: str | None = None
+    days_ago: int
+    initial_aps: float
+    current_aps: float
+    real_yield: float
+
+
+class YieldCreate(YieldBase):
+    """
+    Same as YieldBase
+    """
+
+
+class YieldInDB(YieldBase):
+    id: int
+    timestamp: datetime
+    model_config: ConfigDict = ConfigDict(orm_mode=True)
+
+
+def get_db_conn():
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def create_yield(yield_data: YieldCreate) -> YieldInDB:
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        INSERT INTO yields (
+            vault_address,
+            assett_address,
+            days_ago,
+            initial_aps,
+            current_aps,
+            real_yield,
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            yield_data.vault_address,
+            yield_data.asset_address,
+            yield_data.days_ago,
+            yield_data.initial_aps,
+            yield_data.current_aps,
+            yield_data.real_yield,
+        )
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    return get_yield(new_id)
+
+
+def get_yield(yield_id: int) -> YieldInDB | None:
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM yields WHERE id = ?", (yield_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return YieldInDB(**row)
+    return None
+
+
+def get_all_yields() -> list[YieldInDB]:
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM yields")
+    rows = cursor.fetchall()
+    conn.close()
+    return [YieldInDB(**row) for row in rows]
+
+
+def delete_yield(yield_id: int) -> bool:
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM yields WHERE id = ?", (yield_id,))
+    conn.commit()
+    affected_rows = cursor.rowcount
+    conn.close()
+    return affected_rows > 0
 
 
 def main():
@@ -15,7 +107,7 @@ def main():
     ]
 
     # Time period for yield calculation (e.g., 30 days)
-    days_ago = 30
+    days_ago = 365
 
     # Use the Ethereum mainnet provider with archive access
     with networks.ethereum.mainnet.use_provider("alchemy"):  # or "infura"
@@ -27,7 +119,7 @@ def main():
 def calculate_yield(vault, days_ago):
     # Get the underlying asset and its decimals
     try:
-        asset_address = vault.asset()
+        asset_address = vault.symbol.contract.address
         asset = Contract(asset_address)
         decimals = asset.decimals()
     except Exception as e:
@@ -36,7 +128,7 @@ def calculate_yield(vault, days_ago):
 
     # Fetch current total assets and total supply adjusted for decimals
     try:
-        total_assets = vault.totalAssets() / (10 ** decimals)
+        total_assets = asset.balanceOf(vault.address) / (10 ** decimals)
         total_supply = vault.totalSupply() / (10 ** decimals)
     except Exception as e:
         print(f"Error fetching current data for vault {vault.address}: {e}")
@@ -49,7 +141,7 @@ def calculate_yield(vault, days_ago):
     current_aps = Decimal(total_assets) / Decimal(total_supply)
 
     # Fetch historical asset per share
-    initial_aps = get_historical_aps(vault, days_ago, decimals)
+    initial_aps = get_historical_aps(vault, days_ago)
 
     if initial_aps == 0:
         print(f"Vault {vault.address}: Unable to fetch historical data.")
@@ -72,7 +164,16 @@ def calculate_yield(vault, days_ago):
     print(f"Real Yield over {days_ago} days: {real_yield:.2f}%\n")
 
 
-def get_historical_aps(vault, days_ago, decimals):
+def get_historical_aps(vault, days_ago):
+    # Get the underlying asset
+    try:
+        asset_address = vault.symbol.contract.address
+        asset = Contract(asset_address)
+        decimals = asset.decimals()
+    except Exception as e:
+        print(f"Error fetching asset information for vault {vault.address}: {e}")
+        return
+
     # Calculate the target timestamp
     target_date = datetime.utcnow() - timedelta(days=days_ago)
     target_timestamp = int(target_date.timestamp())
@@ -84,7 +185,7 @@ def get_historical_aps(vault, days_ago, decimals):
 
     # Fetch historical totalAssets and totalSupply at that block
     try:
-        total_assets = vault.totalAssets(block_identifier=block_number) / (10 ** decimals)
+        total_assets = asset.balanceOf(vault.address, block_identifier=block_number) / (10 ** decimals)
         total_supply = vault.totalSupply(block_identifier=block_number) / (10 ** decimals)
     except Exception as e:
         print(f"Error fetching historical data for vault {vault.address}: {e}")
@@ -201,5 +302,34 @@ def calculate_average_yield():
     conn.close()
 
 
-if __name__ == "__main__":
-    main()
+@app.post("/yields/", response_model=YieldInDB)
+def create_yield_endpoint(yield_data: YieldCreate):
+    new_yield = create_yield(yield_data)
+    return new_yield.dict()
+
+
+@app.get("/yields/{yield_id}", response_model=YieldInDB)
+def read_yield(yield_id: int):
+    db_yield = get_yield(yield_id)
+    if db_yield is None:
+        raise HTTPException(status_code=404, detail="Yield not found")
+    return db_yield.dict()
+
+
+@app.get("/yields/", response_model=list[YieldInDB])
+def read_all_yields():
+    yields = get_all_yields()
+    return yields
+
+
+@app.delete("/yields/{yield_id}")
+def remove_yield(yield_id: int):
+    success = delete_yield(yield_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Yield not found")
+    return {"message": "Yield deleted successfully"}
+
+
+# if __name__ == "__main__":
+#     main()
+#     read_yield_data()
