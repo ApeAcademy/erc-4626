@@ -26,11 +26,12 @@ def update_database_withdraw(log):
     """
     Update database with withdraw log
     """
+    breakpoint()
     print(f"Withdraw Event: {log}")
 
 
 @app.on_(chain.blocks)
-def update_shareprice():
+def update_shareprice(_):
     """
     Add price to database (Update database)
     """

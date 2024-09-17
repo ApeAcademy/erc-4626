@@ -4,7 +4,7 @@ plugins:
   - name: alchemy
   - name: etherscan
 
-networks:
-  ethereum:
-    mainnet:
-      alchemy:
+ethereum:
+  default_network: mainnet
+  mainnet:
+    default_provider: alchemy
