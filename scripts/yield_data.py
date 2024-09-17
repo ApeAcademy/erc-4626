@@ -4,11 +4,17 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 import sqlite3
+import uvicorn
 
 
 app = FastAPI(title="Vault Yields API")
 
 database = "vault_yields.db"
+
+
+@app.on_event("startup")
+def startup_event():
+    create_database()
 
 
 class YieldBase(BaseModel):
@@ -26,10 +32,18 @@ class YieldCreate(YieldBase):
     """
 
 
+class FetchYield(BaseModel):
+    """
+    Fetch the yield from ERC-4626.
+    """
+    vault_address: str
+    num_days: int
+
+
 class YieldInDB(YieldBase):
     id: int
     timestamp: datetime
-    model_config: ConfigDict = ConfigDict(orm_mode=True)
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
 
 
 def get_db_conn():
@@ -96,10 +110,14 @@ def delete_yield(yield_id: int) -> bool:
     return affected_rows > 0
 
 
-def main():
-    # Create the database and table if they don't exist
-    create_database()
+def fetch_yield(vault_address: str, num_days: int):
+    """
+    Get the yield for a vault address within a time period in days.
 
+    Args:
+        vault_address (str): The vault address you want to inspect.
+        num_days (int): The time period to get the real yield.
+    """
     # List of ERC-4626 vault addresses to analyze
     vault_addresses = [
         "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
@@ -111,13 +129,13 @@ def main():
 
     # Use the Ethereum mainnet provider with archive access
     with networks.ethereum.mainnet.use_provider("alchemy"):  # or "infura"
-        for address in vault_addresses:
-            vault = Contract(address)
-            calculate_yield(vault, days_ago)
+        vault = Contract(vault_address)
+        calculate_yield(vault, num_days)
 
 
 def calculate_yield(vault, days_ago):
     # Get the underlying asset and its decimals
+    current_aps = 0
     try:
         asset_address = vault.symbol.contract.address
         asset = Contract(asset_address)
@@ -134,11 +152,21 @@ def calculate_yield(vault, days_ago):
         print(f"Error fetching current data for vault {vault.address}: {e}")
         return
 
+    if total_assets == 0:
+        try:
+            total_assets = vault.tokenPrice() / (10 ** decimals)
+            current_aps = Decimal(total_assets)
+        except Exception as e:
+            print("Error fetching historical data for vault {vault.address}: {e}")
+            print("No attribute 'tokenPrice' in vault.")
+            return 0
+
     if total_supply == 0:
         print(f"Vault {vault.address}: No shares have been issued yet.")
         return
 
-    current_aps = Decimal(total_assets) / Decimal(total_supply)
+    if current_aps == 0:
+        current_aps = Decimal(total_assets) / Decimal(total_supply)
 
     # Fetch historical asset per share
     initial_aps = get_historical_aps(vault, days_ago)
@@ -153,7 +181,7 @@ def calculate_yield(vault, days_ago):
     # Insert data into the database
     insert_yield_data(
         vault_address=vault.address,
-        asset_address=asset.address,
+        asset_address=asset_address,
         days_ago=days_ago,
         initial_aps=float(initial_aps),
         current_aps=float(current_aps),
@@ -190,6 +218,15 @@ def get_historical_aps(vault, days_ago):
     except Exception as e:
         print(f"Error fetching historical data for vault {vault.address}: {e}")
         return 0
+
+    if total_assets == 0:
+        try:
+            total_assets = vault.tokenPrice(block_identifier=block_number) / (10 ** decimals)
+            return Decimal(total_assets)
+        except Exception as e:
+            print("Error fetching historical data for vault {vault.address}: {e}")
+            print("No attribute 'tokenPrice' in vault.")
+            return 0
 
     if total_supply == 0:
         return 0
@@ -302,10 +339,10 @@ def calculate_average_yield():
     conn.close()
 
 
-@app.post("/yields/", response_model=YieldInDB)
-def create_yield_endpoint(yield_data: YieldCreate):
-    new_yield = create_yield(yield_data)
-    return new_yield.dict()
+@app.post("/yields/", response_model=dict)
+def create_yield_endpoint(yield_data: FetchYield):
+    fetch_yield(yield_data.vault_address, yield_data.num_days)
+    return {"request": "success"}
 
 
 @app.get("/yields/{yield_id}", response_model=YieldInDB)
@@ -330,6 +367,6 @@ def remove_yield(yield_id: int):
     return {"message": "Yield deleted successfully"}
 
 
-# if __name__ == "__main__":
-#     main()
-#     read_yield_data()
+if __name__ == "__main__":
+    uvicorn.run("yield_data:app", host="0.0.0.0", port=8000, reload=True)
+
