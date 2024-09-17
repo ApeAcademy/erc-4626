@@ -129,7 +129,9 @@ def fetch_yield(vault_address: str, num_days: int):
 
     # Use the Ethereum mainnet provider with archive access
     with networks.ethereum.mainnet.use_provider("alchemy"):  # or "infura"
+        breakpoint()
         vault = Contract(vault_address)
+        breakpoint()
         calculate_yield(vault, num_days)
 
 
