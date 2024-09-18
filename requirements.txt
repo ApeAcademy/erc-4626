@@ -3,3 +3,4 @@ eth-ape
 fastapi
 uvicorn
 silverback
+sqlmodel
