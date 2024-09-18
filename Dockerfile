@@ -28,15 +28,13 @@ USER harambe
 
 COPY --chown=harambe:harambe ./bots/* ./bots/
 
-COPY ape-config.yaml ape-config.yaml
+COPY ape-config.yaml .
 COPY requirements.txt .
 RUN pip install --upgrade pip \
   && pip install -r requirements.txt
-
-RUN ape plugins install .
 
 ENV WORKERS=1
 ENV MAX_EXCEPTIONS=3
 
 ENTRYPOINT silverback worker -v DEBUG -w $WORKERS \
-  -x $MAX_EXCEPTIONS --account bot "bots.hollaback:app"
+  -x $MAX_EXCEPTIONS --account bot "bots.silverback_yield:app"
