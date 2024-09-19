@@ -55,7 +55,11 @@ def handle_on_worker_startup(state):
     create_db_and_tables()
 
 
-# Note: Use SQLModel
+@app.on_worker_shutdown()
+def handle_on_worker_shutdown(state):
+    print("Closing app")
+
+
 @app.on_(vault.Deposit)
 def update_database_deposit(log):
     """
