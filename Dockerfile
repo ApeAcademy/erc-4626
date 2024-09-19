@@ -24,6 +24,9 @@ ENV PIP_NO_CACHE_DIR=off \
 
 WORKDIR /app
 
+RUN mkdir -p /data
+RUN chown harambe:harambe /data
+
 USER harambe
 
 COPY --chown=harambe:harambe ./bots/* ./bots/

@@ -5,7 +5,7 @@ from silverback import SilverbackApp
 
 from sqlmodel import SQLModel, Field, create_engine, Session
 
-sqlite_file_name = "silverback_yield.db"
+sqlite_file_name = "/data/silverback_yield.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 app = SilverbackApp()
@@ -17,12 +17,8 @@ one_share = 10 ** vault.decimals()
 engine = create_engine(sqlite_url, echo=True)
 
 
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-
 class Transaction(SQLModel, table=True):
-    id: int | None = Field(primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     block: str
     sender: str
     owner: str
@@ -49,6 +45,15 @@ def create_transaction(log):
         session.commit()
         session.refresh(transaction)
     return transaction
+
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+@app.on_worker_startup()
+def handle_on_worker_startup(state):
+    create_db_and_tables()
 
 
 # Note: Use SQLModel
