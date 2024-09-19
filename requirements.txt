@@ -4,5 +4,4 @@ fastapi
 uvicorn
 silverback
 sqlmodel
-taskiq-sqs
 taskiq-redis

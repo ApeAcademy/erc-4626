@@ -5,8 +5,7 @@ from silverback import SilverbackApp
 
 from sqlmodel import SQLModel, Field, create_engine, Session
 
-sqlite_file_name = "/data/silverback_yield.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+sqlite_url = os.environ.get("DATABASE_URL")
 
 app = SilverbackApp()
 
