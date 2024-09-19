@@ -1,18 +1,5 @@
 services:
-  app-worker:
-    build: .
-    env_file: .env
-    environment:
-      - DATABASE_URL=sqlite:////data/silverback_yield.db
-      - SILVERBACK_BROKER_CLASS=taskiq_redis:ListQueueBroker
-      - SILVERBACK_RESULT_BACKEND_CLASS=taskiq_redis:RedisAsyncResultBackend
-      - SILVERBACK_RESULT_BACKEND_URI=redis://redis:6379
-    depends_on:
-      - redis
-    command: worker "bots.silverback_yield:app"
-    restart: unless-stopped
-
-  app-runner:
+  app:
     build: .
     env_file: .env
     environment:

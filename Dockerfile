@@ -38,6 +38,3 @@ RUN pip install --upgrade pip \
 
 ENV WORKERS=1
 ENV MAX_EXCEPTIONS=3
-
-ENTRYPOINT silverback worker -v DEBUG -w $WORKERS \
-  -x $MAX_EXCEPTIONS --account bot "bots.silverback_yield:app"
