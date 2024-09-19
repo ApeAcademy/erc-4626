@@ -27,6 +27,9 @@ WORKDIR /app
 RUN mkdir -p /data
 RUN chown harambe:harambe /data
 
+RUN mkdir -p ./.silverback-sessions
+RUN chown harambe:harambe ./.silverback-sessions
+
 USER harambe
 
 COPY --chown=harambe:harambe ./bots/* ./bots/
