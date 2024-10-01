@@ -1,14 +1,6 @@
 FROM ghcr.io/apeworx/silverback:latest
 
 USER root
-RUN apt-get -y update && apt-get -y install git
-
-# Is this necessary after a real tagged release?
-ENV SETUPTOOLS_SCM_PRETEND_VERSION="6.6.6"
-
-ENV PIP_NO_CACHE_DIR=off \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.6.1
 
 WORKDIR /app
 
