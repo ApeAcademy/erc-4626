@@ -1,16 +1,4 @@
-FROM python:3.11 AS base
-
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /build
-
-# Create virtualenv using poetry lockfile
-FROM base AS builder
-
-FROM apeworx/silverback:latest
+FROM ghcr.io/apeworx/silverback:latest
 
 USER root
 RUN apt-get -y update && apt-get -y install git
@@ -38,6 +26,8 @@ COPY ape-config.yaml .
 COPY requirements.txt .
 RUN pip install --upgrade pip \
   && pip install -r requirements.txt
+
+run ape plugins install .
 
 ENV WORKERS=1
 ENV MAX_EXCEPTIONS=3
