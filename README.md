@@ -44,15 +44,18 @@ SILVERBACK_BROKER_KWARGS='{"queue_name": "taskiq", "url": "redis://redis:6379"}'
 
 Ensure you have all necessary dependencies installed. You can typically do this with: `pip install -r requirements.txt`
 
+Ensure you have all necessary dependencies installed. You can typically do this with: 
+`ape plugins install . -U`
+
 ### 4. Run the Bot
 
-Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:app`
+Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:bot`
 
 ### 5. Verify Database Creation
 
 The SQLite database file should automatically be created in the /data/ directory when the bot is run for the first time. You can verify its existence by checking the contents of the directory `ls /data`
 
-### 3. Troubleshooting
+### 6. Troubleshooting
 
 If you encounter permission issues, double-check the ownership and permissions of the /data directory.
 Ensure your .env file is properly formatted and located in the root of your project.
