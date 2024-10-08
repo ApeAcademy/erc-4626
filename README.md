@@ -39,10 +39,12 @@ Ensure that your `ape-config.yaml` default network is mainnet and alchemy.
 
 ### 3. Run the Bot
 
-Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:bot`
+Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:bot --network ethereum:mainnet:alchemy`
 
 ### Troubleshooting
 
 * Ensure your .env file is properly formatted and located in the root of your project.
 
 * FileNotFoundError: The bots directory '/path/to/silverback/bots' does not exist. You should have a `bots/` folder in the root of your project.
+
+* ProviderNotConnectedError: Not connected to a network provider. You have to specify a network in the cli command ex: `silverback run bots.silverback_yield:bot --network ethereum:mainnet:alchemy`
