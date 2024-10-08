@@ -15,7 +15,7 @@ def update_shareprice(_):
     """
     Add price to database (Update database)
     """
-    price = vault.convertToShares(one_share) / one_share
+     price = vault.convertToAssets(one_share) / one_share
     # Total number of shares in the vault divide by 
     # the current unit price of a share  = gwei 
     print(f"Price Event: {price}")
