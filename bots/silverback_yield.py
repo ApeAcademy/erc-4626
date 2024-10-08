@@ -5,8 +5,7 @@ from silverback import SilverbackApp
 
 bot = SilverbackApp()
 
-with networks.ethereum.mainnet.use_provider("alchemy"):  # or "infura"
-    vault = Contract(os.environ.get("ERC4626_VAULT_ADDRESS"))
+vault = Contract(os.environ["ERC4626_VAULT_ADDRESS"])
 
 one_share = 10 ** vault.decimals()
 
