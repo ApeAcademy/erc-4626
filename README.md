@@ -17,16 +17,7 @@ This project uses the Silverback framework to run a bot that interacts with a SQ
 
 ## Setup Instructions
 
-### 1. Create the Data Directory
-
-You need a directory to store the SQLite database. Follow these steps to create it:
-
-```bash
-sudo mkdir /data
-sudo chown $USER:$USER /data  # Replace $USER with your username if necessary
-```
-
-### 2. Set Up Environment Variables
+### 1. Set Up Environment Variables
 
 Create a .env file in your project directory to define environment variables with `touch .env`
 
@@ -35,24 +26,25 @@ Add variables like these to the file:
 ```bash
 WEB3_ALCHEMY_PROJECT_ID=
 ERC4626_VAULT_ADDRESS=
-ETHERSCAN_API_KEY=
-DATABASE_URL=sqlite:////data/ilovesilverback.db
-SILVERBACK_BROKER_KWARGS='{"queue_name": "taskiq", "url": "redis://redis:6379"}'
 ```
 
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 Ensure you have all necessary dependencies installed. You can typically do this with: `pip install -r requirements.txt`
 
-### 4. Run the Bot
+Ensure you have all necessary dependencies installed. You can typically do this with: 
+`ape plugins install . -U`
 
-Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:app`
+Ensure that your `ape-config.yaml` default network is mainnet and alchemy.
 
-### 5. Verify Database Creation
+### 3. Run the Bot
 
-The SQLite database file should automatically be created in the /data/ directory when the bot is run for the first time. You can verify its existence by checking the contents of the directory `ls /data`
+Once the setup is complete, you can run your bot using the Silverback CLI. Use the following command: `silverback run bots.silverback_yield:bot --network ethereum:mainnet:alchemy`
 
-### 3. Troubleshooting
+### Troubleshooting
 
-If you encounter permission issues, double-check the ownership and permissions of the /data directory.
-Ensure your .env file is properly formatted and located in the root of your project.
+* Ensure your .env file is properly formatted and located in the root of your project.
+
+* FileNotFoundError: The bots directory '/path/to/silverback/bots' does not exist. You should have a `bots/` folder in the root of your project.
+
+* ProviderNotConnectedError: Not connected to a network provider. You have to specify a network in the cli command ex: `silverback run bots.silverback_yield:bot --network ethereum:mainnet:alchemy`
