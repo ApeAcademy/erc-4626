@@ -1,9 +1,9 @@
 import os
 
-from ape import Contract, chain, networks
-from silverback import SilverbackApp
+from ape import Contract, chain
+from silverback import SilverbackBot
 
-bot = SilverbackApp()
+bot = SilverbackBot()
 
 vault = Contract(os.environ["ERC4626_VAULT_ADDRESS"])
 
@@ -13,7 +13,7 @@ one_share = 10 ** vault.decimals()
 @bot.on_(chain.blocks)
 def update_shareprice(_):
     """
-    Add price to database (Update database)
+    Conver share to set price unit.
     """
     price = vault.convertToAssets(one_share) / one_share
     # Total number of shares in the vault divide by 
