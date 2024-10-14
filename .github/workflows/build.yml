@@ -1,0 +1,116 @@
+name: Container Images
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  release:
+    type: [published]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TARGET_DIR: ./silverback-images
+  DOCKERFILE_PATTERN: Dockerfile.*
+
+jobs:
+  setup_directory:
+    name: Check and Setup Directory
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if Directory Exists
+        id: check_dir
+        run: |
+          if [ -d "${{ env.TARGET_DIR }}" ]; then
+            echo "Directory exists."
+            echo "directory_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Directory does not exist. Creating..."
+            mkdir -p "${{ env.TARGET_DIR }}"
+            echo "directory_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Files
+        id: gen_files
+        if: steps.check_dir.outputs.directory_exists == 'false'
+        run: |
+          silverback build --generate
+
+  generate_matrix:
+    name: Generate Matrix for Build
+    runs-on: ubuntu-latest
+    needs: setup_directory
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Verify Dockerfiles Exist
+        run: |
+          if [ ! -d "${{ env.TARGET_DIR }}" ]; then
+            echo "Directory '${{ env.TARGET_DIR }}" does not exist. Exiting.""
+            exit 1
+          fi
+
+      - name: Find Dockerfiles
+        id: find_dockerfiles
+        run: |
+          dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
+          echo "Found Dockerfiles: "
+          echo "${dockerfiles}"
+
+          dockerfile_array=()
+          for df in $dockerfiles; do
+            name=$(basename "$df" | sed 's/Dockerfile\.//')
+            tag=${name}
+            dockerfile_array+=("{\"file\":\"$df\",\"name\":\"$name\",\"tag\":\"$tag\"}")
+          done
+
+          if [ ${dockerfile_array[@] -eq 0} ]; then
+            echo "No Dockerfiles found in '${{ env.TARGET_DIR }}'. Exiting..."
+            exit 1
+          fi
+
+          matrix=$(printf "[%s]" "$(IFS=,; echo "${dockerfile_array[*]}")")
+          echo "Matrix JSON: $matrix"
+          echo "matrix=$matrix" >> GITHUB_OUTPUT
+
+      - name: Set Matrix
+        id: set-matrix
+        run: |
+          echo "matrix=${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    name: Build and Push Docker Images
+    needs: find-dockerfiles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Log into GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push ${{ matrix.name }} Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:latest
