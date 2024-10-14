@@ -23,13 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Check if Directory Exists
         id: check_dir
         run: |
@@ -46,6 +39,10 @@ jobs:
         id: gen_files
         if: steps.check_dir.outputs.directory_exists == 'false'
         run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
           silverback build --generate
 
   generate_matrix:
