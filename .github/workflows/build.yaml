@@ -45,6 +45,12 @@ jobs:
           pip install -r requirements.txt
           silverback build --generate
 
+      - name: Upload Dockerfiles as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dockerfiles
+          path: ${{ env.TARGET_DIR }}
+
   generate_matrix:
     name: Generate Matrix for Build
     runs-on: ubuntu-latest
