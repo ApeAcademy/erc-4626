@@ -10,7 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  TARGET_DIR: ./silverback-images
+  TARGET_DIR: ./.silverback-images
   DOCKERFILE_PATTERN: Dockerfile.*
 
 jobs:
