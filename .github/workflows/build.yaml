@@ -58,6 +58,13 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
+      - name: Download Dockerfiles Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: dockerfiles
+          path: ${{ env.TARGET_DIR }}
+        
+
       - name: Verify Dockerfiles Exist
         run: |
           if [ ! -d "${{ env.TARGET_DIR }}" ]; then
