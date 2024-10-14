@@ -85,7 +85,7 @@ jobs:
 
   build-and-push:
     name: Build and Push Docker Images
-    needs: find-dockerfiles
+    needs: generate_matrix
     runs-on: ubuntu-latest
     permissions:
       contents: read
