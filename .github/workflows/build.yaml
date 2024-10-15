@@ -5,7 +5,7 @@ on:
       - main
   pull_request:
   release:
-    type: [published]
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
@@ -73,9 +73,9 @@ jobs:
             exit 1
           fi
 
-          matrix=$(printf "[%s]" "$(IFS=,; echo "${dockerfile_array[*]}")")
+          matrix=$(printf '{"include":[%s]}' "$(IFS=,; echo "${dockerfile_array[*]}")")
           echo "Matrix JSON: $matrix"
-          echo "matrix=$matrix" >> GITHUB_OUTPUT
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
       - name: Set Matrix
         id: set-matrix
