@@ -50,7 +50,7 @@ jobs:
       - name: Verify Dockerfiles Exist
         run: |
           if [ ! -d "${{ env.TARGET_DIR }}" ]; then
-            echo "Directory '${{ env.TARGET_DIR }}" does not exist. Exiting.""
+            echo "Directory '${{ env.TARGET_DIR }}" does not exist. Exiting."
             exit 1
           fi
 
@@ -64,11 +64,11 @@ jobs:
           dockerfile_array=()
           for df in $dockerfiles; do
             name=$(basename "$df" | sed 's/Dockerfile\.//')
-            tag=${name}
+            tag=latest
             dockerfile_array+=("{\"file\":\"$df\",\"name\":\"$name\",\"tag\":\"$tag\"}")
           done
 
-          if [ ${#dockerfile_array[@]} -eq 0} ]; then
+          if [ "${#dockerfile_array[@]}" -eq 0} ]; then
             echo "No Dockerfiles found in '${{ env.TARGET_DIR }}'. Exiting..."
             exit 1
           fi
@@ -92,7 +92,7 @@ jobs:
       attestations: write
       id-token: write
     strategy:
-      matrix: ${{fromJson(needs.generate_matrix.outputs.matrix)}}
+      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
