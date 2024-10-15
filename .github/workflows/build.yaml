@@ -83,7 +83,7 @@ jobs:
           fi
 
           # Generate a valid JSON matrix with 'include' key
-          matrix=$(printf '{"include":[%s]}' "$(IFS=,; echo "${dockerfile_array[*]}")")
+          matrix=$(printf '[%s]' "$(IFS=,; echo "${dockerfile_array[*]}")")
           echo "Matrix JSON: $matrix"
 
           # Optional: Validate JSON structure using jq (if available)
@@ -107,7 +107,7 @@ jobs:
       attestations: write
       id-token: write
     strategy:
-      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix.include) }}
+      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
