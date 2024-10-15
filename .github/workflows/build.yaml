@@ -92,14 +92,6 @@ jobs:
           # Set the matrix output
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-      - name: Validate Matrix JSON
-        run: |
-          echo "${{ steps.find_dockerfiles.outputs.matrix }}" | jq empty
-
-      - name: Print Matrix JSON
-        run: |
-          echo "Matrix JSON: ${{ steps.find_dockerfiles.outputs.matrix }}"
-
       - name: Set Matrix
         id: set-matrix
         run: |
