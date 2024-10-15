@@ -17,8 +17,11 @@ jobs:
   generate_matrix:
     name: Check and Setup Matrix
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +67,7 @@ jobs:
           dockerfile_array=()
           for df in $dockerfiles; do
             name=$(basename "$df" | sed 's/Dockerfile\.//')
-            tag=latest
+            tag=${name}
             dockerfile_array+=("{\"file\":\"$df\",\"name\":\"$name\",\"tag\":\"$tag\"}")
           done
 
@@ -82,18 +85,6 @@ jobs:
         run: |
           echo "matrix=${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
 
-  build-and-push:
-    name: Build and Push Docker Images
-    needs: generate_matrix
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    strategy:
-      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
-    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -107,11 +98,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push ${{ matrix.name }} Image
+      - name: Build and Push ${{ steps.set-matrix.outputs.matrix.name }} Image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ${{ matrix.file }}
+          file: ${{ steps.set-matrix.matrix.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:latest
