@@ -14,7 +14,7 @@ env:
   DOCKERFILE_PATTERN: Dockerfile.*
 
 jobs:
-  setup_matrix:
+  generate_matrix:
     name: Check and Setup Matrix
     runs-on: ubuntu-latest
     steps:
