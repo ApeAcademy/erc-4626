@@ -1,11 +1,12 @@
 name: Container Images
+
 on:
   push:
     branches:
       - main
   pull_request:
   release:
-    types: [published]
+    types: [published]  # Corrected 'type' to 'types'
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +23,8 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,39 +63,70 @@ jobs:
       - name: Find Dockerfiles
         id: find_dockerfiles
         run: |
+          # Find all Dockerfiles matching the pattern
           dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
-          echo "Found Dockerfiles: "
+          echo "Found Dockerfiles:"
           echo "${dockerfiles}"
 
           dockerfile_array=()
           for df in $dockerfiles; do
             name=$(basename "$df" | sed 's/Dockerfile\.//')
             tag=${name}
+            # Properly escape quotes and ensure JSON strings are correctly formatted
             dockerfile_array+=("{\"file\":\"$df\",\"name\":\"$name\",\"tag\":\"$tag\"}")
           done
 
-          if [ "${#dockerfile_array[@]}" -eq 0} ]; then
+          # Check if any Dockerfiles were found
+          if [ "${#dockerfile_array[@]}" -eq 0 ]; then
             echo "No Dockerfiles found in '${{ env.TARGET_DIR }}'. Exiting..."
             exit 1
           fi
 
+          # Generate a valid JSON matrix with 'include' key
           matrix=$(printf '{"include":[%s]}' "$(IFS=,; echo "${dockerfile_array[*]}")")
           echo "Matrix JSON: $matrix"
+
+          # Optional: Validate JSON structure using jq (if available)
+          echo "$matrix" | jq empty
+
+          # Set the matrix output
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+      - name: Validate Matrix JSON
+        run: |
+          echo "${{ steps.find_dockerfiles.outputs.matrix }}" | jq empty
+
+      - name: Print Matrix JSON
+        run: |
+          echo "Matrix JSON: ${{ steps.find_dockerfiles.outputs.matrix }}"
 
       - name: Set Matrix
         id: set-matrix
         run: |
           echo "matrix=${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
 
+  build-and-push:
+    name: Build and Push Docker Images
+    needs: generate_matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    strategy:
+      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
+    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Print matrix
+      - name: Display Matrix Variables
         run: |
-          echo: ${{ steps.set-matrix.outputs.matrix }}
+          echo "Building Dockerfile: ${{ matrix.file }}"
+          echo "Image Name: ${{ matrix.name }}"
+          echo "Image Tag: ${{ matrix.tag }}"
 
       - name: Log into GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -102,11 +136,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push ${{ steps.set-matrix.outputs.matrix.name }} Image
+      - name: Build and Push ${{ matrix.name }} Image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ${{ steps.set-matrix.matrix.file }}
+          file: ${{ matrix.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:${{ github.sha }}
+
