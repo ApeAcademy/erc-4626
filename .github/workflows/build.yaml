@@ -107,7 +107,7 @@ jobs:
       attestations: write
       id-token: write
     strategy:
-      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix.include) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
