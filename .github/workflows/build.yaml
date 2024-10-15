@@ -50,7 +50,7 @@ jobs:
       - name: Verify Dockerfiles Exist
         run: |
           if [ ! -d "${{ env.TARGET_DIR }}" ]; then
-            echo "Directory '${{ env.TARGET_DIR }}" does not exist. Exiting."
+            echo "Directory '${{ env.TARGET_DIR }}' does not exist. Exiting."
             exit 1
           fi
 
