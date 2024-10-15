@@ -95,7 +95,7 @@ jobs:
       - name: Set Matrix
         id: set-matrix
         run: |
-          echo "${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
+          echo 'matrix=${{ steps.find_dockerfiles.outputs.matrix }}' >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build and Push Docker Images
