@@ -82,8 +82,8 @@ jobs:
             exit 1
           fi
 
-          # Generate a valid JSON matrix with 'include' key
-          matrix=$(printf '{"include":[%s]}' "$(IFS=,; echo "${dockerfile_array[*]}")")
+          # Generate a valid JSON matrix
+          matrix=$(printf '[%s]' "$(IFS=,; echo "${dockerfile_array[*]}")")
           echo "Matrix JSON: $matrix"
 
           # Optional: Validate JSON structure using jq (if available)
@@ -95,7 +95,7 @@ jobs:
       - name: Set Matrix
         id: set-matrix
         run: |
-          echo "matrix=${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.find_dockerfiles.outputs.matrix }}" >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build and Push Docker Images
@@ -107,8 +107,7 @@ jobs:
       attestations: write
       id-token: write
     strategy:
-      matrix:
-        include: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
