@@ -46,12 +46,16 @@ jobs:
       - name: Generate Files
         id: gen_files
         if: steps.check_dir.outputs.directory_exists == 'false'
+        uses: actions/upload-artifact@v4
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
           silverback build --generate
+        with:
+          name: generated-files
+          path: ${{ env.TARGET_DIR }}
 
       - name: Verify Dockerfiles Exist
         run: |
@@ -91,13 +95,6 @@ jobs:
 
           # Set the matrix output
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-
-      - name: Upload Generated Files as Artifact
-        if: steps.check_dir.outputs.directory_exists == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-files
-          path: ${{ env.TARGET_DIR }}
 
   build-and-push:
     name: Build and Push Docker Images
