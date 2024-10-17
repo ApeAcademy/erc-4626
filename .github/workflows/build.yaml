@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  TARGET_DIR: ./.silverback-images
+  TARGET_DIR: $GITHUB_WORKSPACE/.silverback-images
   DOCKERFILE_PATTERN: Dockerfile.*
 
 jobs:
@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: generated-files
-          path: $GITHUB_WORKSPACE/${{ env.TARGET_DIR }}
+          path: ${{ env.TARGET_DIR }}/Dockerfile.*
 
       - name: Verify Dockerfiles Exist
         run: |
