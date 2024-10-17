@@ -36,11 +36,11 @@ jobs:
         run: |
           if [ -d "${{ env.TARGET_DIR }}" ]; then
             echo "Directory exists."
-            echo 'directory_exists=true' >> "$GITHUB_OUTPUT"
+            echo "directory_exists=true" >> $GITHUB_OUTPUT
           else
             echo "Directory does not exist. Creating..."
             mkdir -p "${{ env.TARGET_DIR }}"
-            echo 'directory_exists=false' >> "$GITHUB_OUTPUT"
+            echo "directory_exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate Files
