@@ -116,6 +116,12 @@ jobs:
           echo "Image Name: ${{ matrix.name }}"
           echo "Image Tag: ${{ matrix.tag }}"
 
+      - name: Set Lowercase Repository Owner
+        id: lowercase_owner
+        run: |
+          LOWERCASE_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "LOWERCASE_OWNER=$LOWERCASE_OWNER" >> $GITHUB_ENV
+
       - name: Log into GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
@@ -131,4 +137,4 @@ jobs:
           file: ${{ matrix.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ toLower(github.repository_owner) }}/${{ matrix.tag }}:latest
+            ${{ env.REGISTRY }}/${{ env.LOWERCASE_OWNER }}/${{ matrix.tag }}:latest
