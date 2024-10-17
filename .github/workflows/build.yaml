@@ -53,19 +53,19 @@ jobs:
           pip install -r requirements.txt
           silverback build --generate
 
-      - name: Upload Generated Files as Artifact
-        if: steps.check_dir.outputs.directory_exists == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-files
-          path: ${{ env.TARGET_DIR }}/Dockerfile.*
-
       - name: Verify Dockerfiles Exist
         run: |
           if [ ! -d "${{ env.TARGET_DIR }}" ]; then
             echo "Directory '${{ env.TARGET_DIR }}' does not exist. Exiting."
             exit 1
           fi
+
+      - name: Upload Generated Files as Artifact
+        if: steps.check_dir.outputs.directory_exists == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-files
+          path: ${{ env.TARGET_DIR }}
 
       - name: Find Dockerfiles
         id: find_dockerfiles
