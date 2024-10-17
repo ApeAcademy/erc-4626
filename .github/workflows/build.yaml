@@ -131,4 +131,4 @@ jobs:
           file: ${{ matrix.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:latest
+            ${{ env.REGISTRY }}/${{ toLower(github.repository_owner) }}/${{ matrix.tag }}:latest
