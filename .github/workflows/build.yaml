@@ -103,7 +103,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        matrix: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
+        include: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
