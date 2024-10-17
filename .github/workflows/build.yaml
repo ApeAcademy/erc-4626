@@ -24,7 +24,7 @@ jobs:
       attestations: write
       id-token: write
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Find Dockerfiles
-        id: find_dockerfiles
+        id: matrix
         run: |
           # Find all Dockerfiles matching the pattern
           dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
@@ -91,11 +91,6 @@ jobs:
 
           # Set the matrix output
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
-
-      - name: Set Matrix
-        id: set-matrix
-        run: |
-          echo 'matrix=${{ steps.find_dockerfiles.outputs.matrix }}' >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build and Push Docker Images
