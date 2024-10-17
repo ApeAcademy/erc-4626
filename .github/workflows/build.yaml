@@ -90,7 +90,7 @@ jobs:
           echo "$matrix" | jq empty
 
           # Set the matrix output
-          echo 'matrix=$matrix' >> "$GITHUB_OUTPUT"
+          echo 'matrix=$matrix' >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build and Push Docker Images
