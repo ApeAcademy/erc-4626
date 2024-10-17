@@ -133,7 +133,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: generated-files
-          path: ${{ env.TARGET_DIR }}/
+          path: ${{ env.TARGET_DIR }}
 
       - name: Log into GitHub Container Registry
         if: github.event_name != 'pull_request'
