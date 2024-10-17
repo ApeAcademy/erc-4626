@@ -112,7 +112,7 @@ jobs:
 
       - name: Display Matrix Variables
         run: |
-          echo "Building Dockerfile: ${{ matrix.file }}"
+          echo "Building Dockerfile: ${{ matrix }}"
           echo "Image Name: ${{ matrix.name }}"
           echo "Image Tag: ${{ matrix.tag }}"
 
