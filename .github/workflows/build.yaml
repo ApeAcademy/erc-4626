@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Find Dockerfiles
-        id: matrix
+        id: find_dockerfiles
         run: |
           # Find all Dockerfiles matching the pattern
           dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
@@ -90,7 +90,7 @@ jobs:
           echo "$matrix" | jq empty
 
           # Set the matrix output
-          echo 'matrix=$matrix' >> $GITHUB_OUTPUT
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build and Push Docker Images
@@ -112,7 +112,7 @@ jobs:
 
       - name: Display Matrix Variables
         run: |
-          echo "Building Dockerfile: ${{ matrix }}"
+          echo "Building Dockerfile: ${{ matrix.file }}"
           echo "Image Name: ${{ matrix.name }}"
           echo "Image Tag: ${{ matrix.tag }}"
 
@@ -132,5 +132,3 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.tag }}:${{ github.sha }}
-
