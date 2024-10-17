@@ -132,7 +132,7 @@ jobs:
       - name: Download Generated Files Artifact
         uses: actions/download-artifact@v4
         with:
-          name: generated-files
+          name: gen_files
           path: ${{ env.TARGET_DIR }}
 
       - name: Log into GitHub Container Registry
