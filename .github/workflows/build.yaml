@@ -53,6 +53,11 @@ jobs:
           pip install -r requirements.txt
           silverback build --generate
 
+      - name: Check File Permissions
+        if: steps.check_dir.outputs.directory_exists == 'false'
+        run: |
+          chmod -R +r ${{ env.TARGET_DIR }}
+
       - name: Verify Dockerfiles Exist
         run: |
           if [ ! -d "${{ env.TARGET_DIR }}" ]; then
