@@ -13,6 +13,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   TARGET_DIR: $GITHUB_WORKSPACE/.silverback-images
   DOCKERFILE_PATTERN: Dockerfile.*
+  GITHUB_EVENT_NAME: ${{ github.event_name }}
+  GITHUB_REF: ${{ github.ref }}
 
 jobs:
   generate_matrix:
@@ -23,8 +25,6 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-    outputs:
-      matrix: ${{ steps.find_dockerfiles.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,20 +43,18 @@ jobs:
             echo "directory_exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set Lowercase Repository Owner
+        id: lowercase_owner
+        run: |
+          LOWERCASE_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "LOWERCASE_OWNER=$LOWERCASE_OWNER" >> $GITHUB_ENV
+
       - name: Generate Files
         id: gen_files
         if: steps.check_dir.outputs.directory_exists == 'false'
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install silverback
           silverback build --generate
-
-      - name: Check File Permissions
-        if: steps.check_dir.outputs.directory_exists == 'false'
-        run: |
-          chmod -R +r ${{ env.TARGET_DIR }}
 
       - name: Verify Dockerfiles Exist
         run: |
@@ -64,81 +62,6 @@ jobs:
             echo "Directory '${{ env.TARGET_DIR }}' does not exist. Exiting."
             exit 1
           fi
-
-      - name: Upload Generated Files as Artifact
-        if: steps.check_dir.outputs.directory_exists == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-files
-          path: ${{ env.TARGET_DIR }}
-
-      - name: Find Dockerfiles
-        id: find_dockerfiles
-        run: |
-          # Find all Dockerfiles matching the pattern
-          dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
-          echo "Found Dockerfiles:"
-          echo "${dockerfiles}"
-
-          dockerfile_array=()
-          for df in $dockerfiles; do
-            name=$(basename "$df" | sed 's/Dockerfile\.//')
-            tag=${name}
-            # Properly escape quotes and ensure JSON strings are correctly formatted
-            dockerfile_array+=("{\"file\":\"$df\",\"name\":\"$name\",\"tag\":\"$tag\"}")
-          done
-
-          # Check if any Dockerfiles were found
-          if [ "${#dockerfile_array[@]}" -eq 0 ]; then
-            echo "No Dockerfiles found in '${{ env.TARGET_DIR }}'. Exiting..."
-            exit 1
-          fi
-
-          # Generate a valid JSON matrix
-          matrix=$(printf '[%s]' "$(IFS=,; echo "${dockerfile_array[*]}")")
-          echo "Matrix JSON: $matrix"
-
-          # Optional: Validate JSON structure using jq (if available)
-          echo "$matrix" | jq empty
-
-          # Set the matrix output
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
-
-  build-and-push:
-    name: Build and Push Docker Images
-    needs: generate_matrix
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    strategy:
-      matrix:
-        include: ${{ fromJson(needs.generate_matrix.outputs.matrix) }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Display Matrix Variables
-        run: |
-          echo "Building Dockerfile: ${{ matrix.file }}"
-          echo "Image Name: ${{ matrix.name }}"
-          echo "Image Tag: ${{ matrix.tag }}"
-
-      - name: Set Lowercase Repository Owner
-        id: lowercase_owner
-        run: |
-          LOWERCASE_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
-          echo "LOWERCASE_OWNER=$LOWERCASE_OWNER" >> $GITHUB_ENV
-
-      - name: Download Generated Files Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-files
-          path: ${{ env.TARGET_DIR }}
 
       - name: Log into GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -148,11 +71,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push ${{ matrix.name }} Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ${{ matrix.file }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.LOWERCASE_OWNER }}/${{ matrix.tag }}:latest
+      - name: Build and Push
+        run: |
+          # Find all Dockerfiles matching the pattern
+          dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
+          echo "Found Dockerfiles:"
+          echo "${dockerfiles}"
+
+          dockerfile_array=()
+          for df in $dockerfiles; do
+            name=$(basename "$df" | sed 's/Dockerfile\.//')
+            tag=${{ env.REGISTRY }}/${{ env.LOWERCASE_OWNER }}/${name}:latest
+            docker build -t "$tag" -f "$df" .
+            if [ "${{ env.GITHUB_EVENT_NAME }}" == "push" && "${{ env.GITHUB_REF }} == "refs/heads/main" ]; then
+              docker push "$tag"
+            fi
+          done
