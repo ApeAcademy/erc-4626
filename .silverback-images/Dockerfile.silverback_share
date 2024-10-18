@@ -1,0 +1,10 @@
+FROM ghcr.io/apeworx/silverback:stable
+USER root
+WORKDIR /app
+RUN chown harambe:harambe /app
+USER harambe
+COPY ape-config.yaml .
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN ape plugins install -U .
+COPY bots/silverback_share.py /app/bot.py

@@ -1,0 +1,89 @@
+name: Container Images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  release:
+    types: [published]  # Corrected 'type' to 'types'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TARGET_DIR: $GITHUB_WORKSPACE/.silverback-images
+  DOCKERFILE_PATTERN: Dockerfile.*
+  GITHUB_EVENT_NAME: ${{ github.event_name }}
+  GITHUB_REF: ${{ github.ref }}
+
+jobs:
+  generate_matrix:
+    name: Check and Setup Matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if Directory Exists
+        id: check_dir
+        run: |
+          if [ -d "${{ env.TARGET_DIR }}" ]; then
+            echo "Directory exists."
+            echo "directory_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Directory does not exist. Creating..."
+            mkdir -p "${{ env.TARGET_DIR }}"
+            echo "directory_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set Lowercase Repository Owner
+        id: lowercase_owner
+        run: |
+          LOWERCASE_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "LOWERCASE_OWNER=$LOWERCASE_OWNER" >> $GITHUB_ENV
+
+      - name: Generate Files
+        id: gen_files
+        if: steps.check_dir.outputs.directory_exists == 'false'
+        run: |
+          pip install silverback
+          silverback build --generate
+
+      - name: Verify Dockerfiles Exist
+        run: |
+          if [ ! -d "${{ env.TARGET_DIR }}" ]; then
+            echo "Directory '${{ env.TARGET_DIR }}' does not exist. Exiting."
+            exit 1
+          fi
+
+      - name: Log into GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        run: |
+          # Find all Dockerfiles matching the pattern
+          dockerfiles=$(find "${{ env.TARGET_DIR }}" -type f -name "${{ env.DOCKERFILE_PATTERN }}" | sort)
+          echo "Found Dockerfiles:"
+          echo "${dockerfiles}"
+
+          dockerfile_array=()
+          for df in $dockerfiles; do
+            name=$(basename "$df" | sed 's/Dockerfile\.//')
+            tag=${{ env.REGISTRY }}/${{ env.LOWERCASE_OWNER }}/${name}:latest
+            docker build -t "$tag" -f "$df" .
+            if [[ "${{ env.GITHUB_EVENT_NAME }}" == "push" && "${{ env.GITHUB_REF }}" == "refs/heads/main" ]]; then
+              docker push "$tag"
+            fi
+          done
