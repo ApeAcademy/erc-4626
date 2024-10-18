@@ -83,7 +83,7 @@ jobs:
             name=$(basename "$df" | sed 's/Dockerfile\.//')
             tag=${{ env.REGISTRY }}/${{ env.LOWERCASE_OWNER }}/${name}:latest
             docker build -t "$tag" -f "$df" .
-            if [ "${{ env.GITHUB_EVENT_NAME }}" == "push" && "${{ env.GITHUB_REF }} == "refs/heads/main" ]; then
+            if [ "${{ env.GITHUB_EVENT_NAME }}" == "push" && "${{ env.GITHUB_REF }}" == "refs/heads/main" ]; then
               docker push "$tag"
             fi
           done
