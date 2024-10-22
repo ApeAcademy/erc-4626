@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip \
   && pip install -r requirements.txt
 
-run ape plugins install .
+run ape plugins install . --upgrade
 
 ENV WORKERS=1
 ENV MAX_EXCEPTIONS=3
