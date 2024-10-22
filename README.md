@@ -48,3 +48,4 @@ Once the setup is complete, you can run your bot using the Silverback CLI. Use t
 * FileNotFoundError: The bots directory '/path/to/silverback/bots' does not exist. You should have a `bots/` folder in the root of your project.
 
 * ProviderNotConnectedError: Not connected to a network provider. You have to specify a network in the cli command ex: `silverback run bots.silverback_yield:bot --network ethereum:mainnet:alchemy`
+

@@ -1,9 +1,9 @@
 import os
 
-from ape import Contract, chain, networks
-from silverback import SilverbackApp
+from ape import Contract, chain
+from silverback import SilverbackBot
 
-bot = SilverbackApp()
+bot = SilverbackBot()
 
 vault = Contract(os.environ["ERC4626_VAULT_ADDRESS"])
 
