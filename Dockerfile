@@ -12,7 +12,7 @@ RUN chown harambe:harambe ./.silverback-sessions
 
 USER harambe
 
-COPY --chown=harambe:harambe ./bots/* ./bots/
+COPY --chown=harambe:harambe ./bots/silverback_yield.py ./bots/bot.py
 
 COPY ape-config.yaml .
 COPY requirements.txt .
