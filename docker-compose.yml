@@ -1,9 +1,9 @@
 services:
   app:
-    build: .
+    build: ghcr.io/apeacademy/silverback_yield:latest
     env_file: .env
     environment:
       - DATABASE_URL=sqlite:////data/silverback_yield.db
-    command: run "bots.silverback_yield:app"
+    command: run
     restart: unless-stopped
 
